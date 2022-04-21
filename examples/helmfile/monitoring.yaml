@@ -1,0 +1,8 @@
+releases:
+  - name: monitoring-custom
+    namespace: application-monitoring
+    chart: monitoring-custom
+    version: 0.0.1
+    values:
+      - monitoring-custom/values.yaml
+

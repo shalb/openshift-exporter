@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openshift-exporter
+  namespace: application-monitoring
+  labels:
+    role: openshift-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openshift-exporter
+  template:
+    metadata:
+      labels:
+        role: monitoring
+        app: openshift-exporter
+    spec:
+      serviceAccountName: openshift-exporter
+      containers:
+        - name: openshift-exporter
+          image: shalb/openshift-exporter:0.0.1
+          ports:
+            - containerPort: 9647
+          resources:
+            requests:
+              memory: "0.1Gi"
+              cpu: "0.1"
+            limits:
+              memory: "0.1Gi"
+              cpu: "0.1"
+          env:
+            - name: URL
+              value: "https://kubernetes.default.svc"
+            - name: KEYS_TO_GET
+              value: "name namespace"
+            - name: TASKS
+              value: "routes networkpolicies secrets"
+           #- name: LOG_LEVEL
+           #  value: "DEBUG|INFO"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openshift-exporter
+  namespace: application-monitoring
+  labels:
+    app: openshift-exporter
+spec:
+  selector:
+    app: openshift-exporter
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 9647
+      targetPort: 9647
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: openshift-exporter
+    monitoring-key: middleware
+  name: openshift-exporter
+  namespace: application-monitoring
+spec:
+  endpoints:
+  - port: metrics
+    interval: 60s
+    scrapeTimeout: 30s
+  selector:
+    matchLabels:
+      app: openshift-exporter
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: openshift-exporter
+rules:
+- apiGroups: [""]
+  resources:
+  - routes
+  - routes/custom-host
+  - routes/status
+  - secrets
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - extensions
+  attributeRestrictions: null
+  resources:
+  - networkpolicies
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - networking.k8s.io
+  attributeRestrictions: null
+  resources:
+  - networkpolicies
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - route.openshift.io
+  attributeRestrictions: null
+  resources:
+  - routes
+  - routes/custom-host
+  - routes/status
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openshift-exporter
+  namespace: application-monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: openshift-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openshift-exporter
+subjects:
+- kind: ServiceAccount
+  name: openshift-exporter
+  namespace: application-monitoring

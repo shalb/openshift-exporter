@@ -1,0 +1,4 @@
+apiVersion: v1
+name: monitoring-custom
+version: 0.0.1
+description: monitoring custom code

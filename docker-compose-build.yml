@@ -1,0 +1,7 @@
+version: '2'
+services:
+  openshift-exporter:
+    build:
+      context: ./
+    image: shalb/openshift-exporter:0.0.1
+
